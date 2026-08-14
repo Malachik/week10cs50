@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>iPhone Calculator</title>
+
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  </head>
+
+  <body>
+    <header>
+      <h1>My CS50 Week 10 Calculator project</h1>
+    </header>
+    <main class="page">
+      <section class="calculator">
+        <div class="display">
+          <input
+            type="text"
+            id="display"
+            aria-label="Calculator display"
+            disabled
+          />
+        </div>
+
+        <div class="buttons" id="buttons-container"></div>
+      </section>
+
+      <section class="history">
+        <div class="history-header">
+          <h2>History</h2>
+
+          <button type="button" id="clear-history">Clear</button>
+        </div>
+
+        <div id="history-container">
+          {% if history %} {% for calculation in history %}
+
+          <div class="history-item">
+            <div>
+              <span class="expression"> {{ calculation.expression }} </span>
+
+              <span class="date"> {{ calculation.created_at }} </span>
+            </div>
+
+            <span class="result"> {{ calculation.result }} </span>
+          </div>
+
+          {% endfor %} {% else %}
+
+          <p class="no-history">No calculations yet.</p>
+
+          {% endif %}
+        </div>
+      </section>
+    </main>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const container = document.getElementById("buttons-container");
+
+        const labels = [
+          "C",
+          "+/-",
+          "%",
+          "÷",
+          "7",
+          "8",
+          "9",
+          "×",
+          "4",
+          "5",
+          "6",
+          "-",
+          "1",
+          "2",
+          "3",
+          "+",
+          "0",
+          ".",
+          "=",
+        ];
+
+        const actions = {
+          C: clearDisplay,
+
+          "+/-": toggleSign,
+
+          "%": calculatePercentage,
+
+          "÷": function () {
+            appendToDisplay("/");
+          },
+
+          "×": function () {
+            appendToDisplay("*");
+          },
+
+          "-": function () {
+            appendToDisplay("-");
+          },
+
+          "+": function () {
+            appendToDisplay("+");
+          },
+
+          "=": calculateResult,
+        };
+
+        labels.forEach(function (label) {
+          const button = document.createElement("button");
+
+          button.type = "button";
+
+          button.className = "button";
+
+          button.textContent = label;
+
+          if (label === "0") {
+            button.classList.add("zero");
+          }
+
+          if (["÷", "×", "-", "+", "="].includes(label)) {
+            button.classList.add("operator");
+          }
+
+          if (label === "C") {
+            button.classList.add("clear");
+          }
+
+          if (actions[label]) {
+            button.addEventListener("click", actions[label]);
+          } else {
+            button.addEventListener("click", function () {
+              appendToDisplay(label);
+            });
+          }
+
+          container.appendChild(button);
+        });
+      });
+
+      function appendToDisplay(value) {
+        const display = document.getElementById("display");
+
+        display.value += value;
+      }
+
+      function clearDisplay() {
+        document.getElementById("display").value = "";
+      }
+
+      function toggleSign() {
+        const display = document.getElementById("display");
+
+        if (!display.value) {
+          return;
+        }
+
+        if (display.value.startsWith("-")) {
+          display.value = display.value.substring(1);
+        } else {
+          display.value = "-" + display.value;
+        }
+      }
+
+      function calculatePercentage() {
+        const display = document.getElementById("display");
+
+        if (!display.value) {
+          return;
+        }
+
+        const value = parseFloat(display.value);
+
+        if (!isNaN(value)) {
+          display.value = value / 100;
+        }
+      }
+
+      function calculateResult() {
+        const display = document.getElementById("display");
+
+        const expression = display.value;
+
+        if (!expression) {
+          return;
+        }
+
+        $.post(
+          "/calculate",
+          {
+            expression: expression,
+          },
+
+          function (data) {
+            if (data.error) {
+              display.value = data.error;
+            } else {
+              display.value = data.result;
+
+              addHistoryItem(data.expression, data.result);
+            }
+          },
+        ).fail(function (response) {
+          if (response.responseJSON) {
+            display.value = response.responseJSON.error;
+          } else {
+            display.value = "Error";
+          }
+        });
+      }
+
+      function addHistoryItem(expression, result) {
+        const container = document.getElementById("history-container");
+
+        const noHistory = container.querySelector(".no-history");
+
+        if (noHistory) {
+          noHistory.remove();
+        }
+
+        const item = document.createElement("div");
+
+        item.className = "history-item";
+
+        const information = document.createElement("div");
+
+        const expressionElement = document.createElement("span");
+
+        expressionElement.className = "expression";
+
+        expressionElement.textContent = expression;
+
+        const date = document.createElement("span");
+
+        date.className = "date";
+
+        const now = new Date();
+
+        date.textContent = now.toLocaleString();
+
+        information.appendChild(expressionElement);
+
+        information.appendChild(date);
+
+        const resultElement = document.createElement("span");
+
+        resultElement.className = "result";
+
+        resultElement.textContent = result;
+
+        item.appendChild(information);
+
+        item.appendChild(resultElement);
+
+        container.prepend(item);
+      }
+
+      $("#clear-history").click(function () {
+        $.post(
+          "/clear-history",
+
+          function (data) {
+            if (data.success) {
+              $("#history-container").html(
+                '<p class="no-history">No calculations yet.</p>',
+              );
+            }
+          },
+        );
+      });
+    </script>
+  </body>
+</html>
