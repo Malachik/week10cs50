@@ -72,7 +72,12 @@ def evaluate_node(node):
 
         return operation(left, right)
 
-    # Handle positive and negative numbers The function uses recursion because a mathematical expression can contain smaller expressions inside it. node.left represents the left side and node.right represents the right side. The function calls itself on both sides to work out their values. It keeps doing this until it reaches individual numbers, then works its way back up and combines the results using the correct operator.s
+    # Handle positive and negative numbers The function 
+    # uses recursion because a mathematical expression can contain smaller expressions inside it. 
+    #node.left represents the left side and node.right represents the right side. 
+    #The function calls itself on both sides to work out their values. 
+    # It keeps doing this until it reaches individual numbers,
+    #then works its way back up and combines the results using the correct operator.s
     if isinstance(node, ast.UnaryOp):
 
         if isinstance(node.op, ast.USub):
